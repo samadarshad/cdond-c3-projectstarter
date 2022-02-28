@@ -4,6 +4,14 @@ orbs:
 node_image: &node_image
   docker:
     - image: cimg/node:13.8.0
+slack_notification_on_fail: &slack_notification_on_fail
+  - slack/notify:
+      event: fail
+      template: basic_fail_1
+slack_notification_on_pass: &slack_notification_on_pass
+  - slack/notify:
+      event: pass
+      template: success_tagged_deploy_1
 
 # commands:
 #   destroy-environment:
@@ -53,6 +61,12 @@ jobs:
       - save_cache:
           paths: [frontend/node_modules]
           key: frontend-build
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
+      - slack/notify:
+          event: pass
+          template: success_tagged_deploy_1
 
   build-backend:
     <<: *node_image
@@ -69,6 +83,12 @@ jobs:
       - save_cache:
           paths: [backend/node_modules]
           key: backend-build
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
+      - slack/notify:
+          event: pass
+          template: success_tagged_deploy_1
 
   test-frontend:
     <<: *node_image
@@ -82,6 +102,12 @@ jobs:
              cd frontend
              npm install
              npm run test
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
+      - slack/notify:
+          event: pass
+          template: success_tagged_deploy_1
                 
   test-backend:
     <<: *node_image
@@ -95,6 +121,12 @@ jobs:
              cd backend
              npm install
              npm run test
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
+      - slack/notify:
+          event: pass
+          template: success_tagged_deploy_1
             
   scan-frontend:
     <<: *node_image
@@ -109,6 +141,12 @@ jobs:
              npm install
              npm audit fix --audit-level=critical --force
              npm audit --audit-level=critical
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
+      - slack/notify:
+          event: pass
+          template: success_tagged_deploy_1
 
   scan-backend:
     <<: *node_image
@@ -123,6 +161,12 @@ jobs:
              npm install
              npm audit fix --audit-level=critical --force
              npm audit --audit-level=critical
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
+      - slack/notify:
+          event: pass
+          template: success_tagged_deploy_1
   notify:
     docker:
       - image: cimg/base:stable
@@ -313,16 +357,22 @@ jobs:
 workflows:
   default:
     jobs:
-      - build-frontend
-      - build-backend
+      - build-frontend:
+          context: UdacitySlack
+      - build-backend:
+          context: UdacitySlack
       - test-frontend:
           requires: [build-frontend]
+          context: UdacitySlack
       - test-backend:
           requires: [build-backend]
+          context: UdacitySlack
       - scan-backend:
           requires: [build-backend]
+          context: UdacitySlack
       - scan-frontend:
           requires: [build-frontend]
+          context: UdacitySlack
       - notify:
           context: UdacitySlack
       # - deploy-infrastructure:
