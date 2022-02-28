@@ -4,14 +4,6 @@ orbs:
 node_image: &node_image
   docker:
     - image: cimg/node:13.8.0
-slack_notification_on_fail: &slack_notification_on_fail
-  - slack/notify:
-      event: fail
-      template: basic_fail_1
-slack_notification_on_pass: &slack_notification_on_pass
-  - slack/notify:
-      event: pass
-      template: success_tagged_deploy_1
 
 # commands:
 #   destroy-environment:
