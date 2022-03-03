@@ -189,13 +189,15 @@ jobs:
           ID: "${CIRCLE_WORKFLOW_ID:0:7}" 
   configure-infrastructure:
     docker:
-      - image: amazon/aws-cli
+      - image: python:3.7-alpine3.11
     steps:
       - checkout
       - run:
           name: Install dependencies
           command: |
-            yum install -y tar gzip ansible
+            apk add --update ansible
+            /usr/local/bin/python -m pip install --upgrade pip 
+            pip install awscli
       - add_ssh_keys:
           fingerprints: ["4b:c4:f8:63:b4:4c:99:e3:f2:6d:9c:07:55:1a:32:61"] 
       - attach_workspace:
@@ -203,8 +205,8 @@ jobs:
       - run:
           name: Configure server
           command: |
-            # Your code here
-            exit 1
+            cd .circleci/ansible
+            ansible-playbook -i inventory.txt configure-server.yml
       - destroy-environment:
           ID: "${CIRCLE_WORKFLOW_ID:0:7}" 
 #       # Here's where you will add some code to rollback on failure      
