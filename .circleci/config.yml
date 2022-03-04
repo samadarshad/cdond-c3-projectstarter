@@ -18,24 +18,23 @@ commands:
           command: |
             aws cloudformation delete-stack --stack-name "udapeople-backend-<< parameters.ID >>"
             aws cloudformation delete-stack --stack-name "udapeople-frontend-<< parameters.ID >>"
-#   revert-migrations:
-#     description: Revert the last migration if successfully run in the current workflow.
-#     parameters:
-#       # Add parameter here     
-#     steps:
-#       - run:
-#           name: Revert migrations
-#           # Add when this will run
-#           command: |
-#             # Curl command here to see if there was a successful migration associated with the workflow id, store result in SUCCESS variable
-#             SUCCESS = 1
-#             if(( $SUCCESS==1 )); 
-#             then
-#             #  cd ~/project/backend
-#             #  npm install
-#             #  Add revert code here. You can find this in the Getting Started section.
-#               exit 1
-#             fi
+  revert-migrations:
+    description: Revert the last migration if successfully run in the current workflow.
+    parameters:
+      ID:
+        type: string  
+    steps:
+      - run:
+          name: Revert migrations
+          when: on_fail
+          command: |
+            SUCCESS=$(curl --insecure  https://kvdb.io/RZsxGx1gDwyx48cD2GCq8h/migration_<< parameters.ID >>)
+            if(( $SUCCESS==1 )); 
+            then
+              cd ~/project/backend
+              npm install
+              npm run migration:revert
+            fi
             
 jobs:
   build-frontend:
@@ -231,27 +230,47 @@ jobs:
             fi
 #      # Here's where you will add some code to rollback on failure      
 
-#   deploy-frontend:
-#     docker:
-#       # Docker image here that supports AWS CLI
-#     steps:
-#       # Checkout code from git
-#       - run:
-#           name: Install dependencies
-#           command: |
-#             # your code here
-#       - run:
-#           name: Get backend url
-#           command: |
-#             # your code here
-#             export API_URL="http://${BACKEND_IP}:3030"
-#             echo "${API_URL}"
-#       - run:
-#           name: Deploy frontend objects
-#           command: |
-#             # your code here
-#       # Here's where you will add some code to rollback on failure      
-                    
+  deploy-frontend:
+    docker:
+    - image: cimg/node:13.8.0
+      user: root
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apt update
+            apt-get install -y python3 python3-pip
+            python3 -m pip install --upgrade pip 
+            python3 -m pip install awscli
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Get backend url
+          command: |
+            export BACKEND_IP=$(aws ec2 describe-instances \
+                  --query 'Reservations[*].Instances[*].PublicIpAddress' \
+                  --filters "Name=tag:project,Values=udapeople" \
+                  --output text)
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo "${API_URL}"
+            echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
+            cat frontend/.env
+      - run:
+          name: Deploy frontend objects
+          command: |
+            cd frontend
+            npm install
+            npm run build
+            tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
+            aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+      - destroy-environment:
+          ID: "${CIRCLE_WORKFLOW_ID:0:7}" 
+      - revert-migrations:
+          ID: "${CIRCLE_WORKFLOW_ID:0:7}" 
+          
+
+              
 #   deploy-backend:
 #     docker:
 #       # Docker image here that supports Ansible
@@ -330,8 +349,8 @@ jobs:
 workflows:
   default:
     jobs:
-      # - build-frontend:
-      #     context: UdacitySlack
+      - build-frontend:
+          context: UdacitySlack
       - build-backend:
           context: UdacitySlack
       # - test-frontend:
@@ -349,7 +368,8 @@ workflows:
       # - notify:
       #     context: UdacitySlack
       #     requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-      - deploy-infrastructure
+      - deploy-infrastructure:
+          requires: [build-frontend, build-backend]
           # requires: [test-frontend, test-backend, scan-frontend, scan-backend]
           # filters:
           #   branches:
@@ -357,10 +377,10 @@ workflows:
       - configure-infrastructure:
           requires: [deploy-infrastructure]
       - run-migrations:
-          # requires: [configure-infrastructure]
-          requires: [configure-infrastructure, build-backend]
-      # - deploy-frontend:
-      #     requires: [run-migrations]
+          requires: [configure-infrastructure]
+      # - deploy-frontend
+      - deploy-frontend:
+          requires: [run-migrations]
       # - deploy-backend:
       #     requires: [run-migrations]
       # - smoke-test:
