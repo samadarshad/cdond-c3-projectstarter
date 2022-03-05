@@ -175,7 +175,7 @@ jobs:
       - run:
           name: Add back-end ip to ansible inventory
           command: |
-            echo [all] > inventory.txt
+            echo [web] > inventory.txt
             aws ec2 describe-instances \
                   --query 'Reservations[*].Instances[*].PublicIpAddress' \
                   --filters "Name=tag:project,Values=udapeople" \
@@ -287,7 +287,20 @@ jobs:
             apt update
             apt-get install -y python3 python3-pip
             python3 -m pip install --upgrade pip 
-            python3 -m pip install ansib;e
+            python3 -m pip install ansible
+      - run:
+          name: Save env vars to backend
+          command: |
+            echo TYPEORM_CONNECTION=$TYPEORM_CONNECTION >> "backend/.env"
+            echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> "backend/.env"
+            echo TYPEORM_ENTITIES=$TYPEORM_ENTITIES >> "backend/.env"
+            echo TYPEORM_MIGRATIONS=$TYPEORM_MIGRATIONS >> "backend/.env"
+            echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/.env"
+            echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/.env"
+            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/.env"
+            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
+            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
+            echo NODE_ENV=$NODE_ENV >> "backend/.env"
       - run:
           name: Deploy backend
           command: |
@@ -301,8 +314,10 @@ jobs:
             echo "Contents  of the inventory.txt file is -------"
             cat inventory.txt
             ansible-playbook -i inventory.txt deploy-backend.yml
-      - destroy_environment
-      - revert_migration
+      - destroy-environment:
+          ID: "${CIRCLE_WORKFLOW_ID:0:7}" 
+      - revert-migrations:
+          ID: "${CIRCLE_WORKFLOW_ID:0:7}" 
 #       # Here's where you will add some code to rollback on failure  
 
 #   smoke-test:
@@ -398,8 +413,8 @@ workflows:
       # - deploy-frontend
       - deploy-frontend:
           requires: [run-migrations]
-      # - deploy-backend:
-      #     requires: [run-migrations]
+      - deploy-backend:
+          requires: [run-migrations]
       # - smoke-test:
       #     requires: [deploy-backend, deploy-frontend]
       # - cloudfront-update:
