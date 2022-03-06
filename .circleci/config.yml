@@ -182,10 +182,11 @@ jobs:
                   --output text)
             echo ${BACKEND_IP}
             echo ${BACKEND_IP} >> inventory.txt
+            
       - persist_to_workspace:
           root: ~/
           paths:
-            - project/.circleci/ansible/inventory.txt
+            - inventory.txt
       - destroy-environment:
           ID: "${CIRCLE_WORKFLOW_ID:0:7}" 
   configure-infrastructure:
@@ -250,7 +251,7 @@ jobs:
       - run:
           name: Get backend url
           command: |
-            export BACKEND_IP=$(awk '/[web]/{getline; print}' .circleci/ansible/inventory.txt)
+            export BACKEND_IP=$(awk '/[web]/{getline; print}' inventory.txt)
             export API_URL="http://${BACKEND_IP}:3030"
             echo "${API_URL}"
             echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
