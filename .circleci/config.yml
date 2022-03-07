@@ -308,6 +308,8 @@ jobs:
       - checkout
       - restore_cache:
           keys: [backend-build]
+      - attach_workspace:
+          at: ~/
       - add_ssh_keys:
           fingerprints: ["4b:c4:f8:63:b4:4c:99:e3:f2:6d:9c:07:55:1a:32:61"] 
       - run:
