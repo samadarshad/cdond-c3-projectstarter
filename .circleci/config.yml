@@ -199,6 +199,9 @@ jobs:
             - project/inventory.txt
       - destroy-environment:
           ID: "${CIRCLE_WORKFLOW_ID:0:7}" 
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
 
   configure-infrastructure:
     <<: *alpine_image
@@ -221,16 +224,13 @@ jobs:
             ansible-playbook -i ~/project/inventory.txt configure-server.yml
       - destroy-environment:
           ID: "${CIRCLE_WORKFLOW_ID:0:7}" 
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
 
   run-migrations:
     <<: *node_image
     steps:
-    #   - run:
-    #       name: Install dependencies
-    #       command: |
-    #         /usr/local/bin/python -m pip install --upgrade pip 
-    #         pip install awscli
-    #         apk add --update nodejs nodejs-npm
       - checkout
       - restore_cache:
           keys: [backend-build]
@@ -250,7 +250,10 @@ jobs:
       - destroy-environment:
           ID: "${CIRCLE_WORKFLOW_ID:0:7}" 
       - revert-migrations:
-          ID: "${CIRCLE_WORKFLOW_ID:0:7}"      
+          ID: "${CIRCLE_WORKFLOW_ID:0:7}"  
+      - slack/notify:
+          event: fail
+          template: basic_fail_1    
 
   deploy-frontend:
     <<: *node_image 
@@ -293,6 +296,9 @@ jobs:
           ID: "${CIRCLE_WORKFLOW_ID:0:7}" 
       - revert-migrations:
           ID: "${CIRCLE_WORKFLOW_ID:0:7}" 
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
           
 
               
@@ -344,7 +350,10 @@ jobs:
       - destroy-environment:
           ID: "${CIRCLE_WORKFLOW_ID:0:7}" 
       - revert-migrations:
-          ID: "${CIRCLE_WORKFLOW_ID:0:7}" 
+          ID: "${CIRCLE_WORKFLOW_ID:0:7}"
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
 
   smoke-test:
     docker:
@@ -383,6 +392,9 @@ jobs:
             else
               exit 1
             fi
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
       # - destroy-environment:
       #     ID: "${CIRCLE_WORKFLOW_ID:0:7}" 
       # - revert-migrations:
@@ -410,7 +422,10 @@ jobs:
       - destroy-environment:
           ID: "${CIRCLE_WORKFLOW_ID:0:7}" 
       - revert-migrations:
-          ID: "${CIRCLE_WORKFLOW_ID:0:7}" 
+          ID: "${CIRCLE_WORKFLOW_ID:0:7}"
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
 
   cleanup:
     docker:
@@ -446,39 +461,44 @@ workflows:
           context: UdacitySlack
       - build-backend:
           context: UdacitySlack
-      # - test-frontend:
-      #     requires: [build-frontend]
-      #     context: UdacitySlack
-      # - test-backend:
-      #     requires: [build-backend]
-      #     context: UdacitySlack
-      # - scan-backend:
-      #     requires: [build-backend]
-      #     context: UdacitySlack
-      # - scan-frontend:
-      #     requires: [build-frontend]
-      #     context: UdacitySlack
-      # - notify:
-      #     context: UdacitySlack
-      #     requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+      - test-frontend:
+          requires: [build-frontend]
+          context: UdacitySlack
+      - test-backend:
+          requires: [build-backend]
+          context: UdacitySlack
+      - scan-backend:
+          requires: [build-backend]
+          context: UdacitySlack
+      - scan-frontend:
+          requires: [build-frontend]
+          context: UdacitySlack
+      - notify:
+          context: UdacitySlack
+          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
       - deploy-infrastructure:
-          requires: [build-frontend, build-backend]
-          # requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-          # filters:
-          #   branches:
-      #     #     only: [test-feature-branch]
+          context: UdacitySlack
+          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+          filters:
+            branches:
+              only: [master]
       - configure-infrastructure:
           requires: [deploy-infrastructure]
+          context: UdacitySlack
       - run-migrations:
           requires: [configure-infrastructure]
-      # # - deploy-frontend
+          context: UdacitySlack
       - deploy-frontend:
           requires: [run-migrations]
+          context: UdacitySlack
       - deploy-backend:
           requires: [run-migrations]
+          context: UdacitySlack
       - smoke-test:
           requires: [deploy-backend, deploy-frontend]
+          context: UdacitySlack
       - cloudfront-update:
           requires: [smoke-test]
+          context: UdacitySlack
       - cleanup:
           requires: [cloudfront-update]
