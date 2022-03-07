@@ -416,9 +416,6 @@ jobs:
     docker:
       - image: amazon/aws-cli
     steps:
-      - run: yum -y install tar gzip
-      - attach_workspace:
-          at: ~/
       - run:
           name: Delete old workflow items
           command: |
