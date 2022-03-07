@@ -357,9 +357,14 @@ jobs:
           command: |
               # Fetch and prepare the BACKEND_IP env var
               export BACKEND_IP=$(awk '/[web]/{getline; print}' ~/project/inventory.txt)
-              export API_URL="http://${BACKEND_IP}:3030"
+              export API_URL="http://${BACKEND_IP}:3030/api/status"
               echo "${API_URL}"
-              if curl "${API_URL}/api/status" | grep "ok"
+              if curl --connect-timeout 5 \
+                --max-time 10 \
+                --retry 5 \
+                --retry-delay 0 \
+                --retry-max-time 40 \
+                ${API_URL} | grep "ok"
               then
                   exit 0
               else
