@@ -186,9 +186,9 @@ jobs:
           command: |
             echo [web] > ~/project/inventory.txt
             export BACKEND_IP=$(aws ec2 describe-instances \
-                  --query 'Reservations[*].Instances[*].PublicIpAddress' \
-                  --filters "Name=tag:project,Values=udapeople" \
-                  --output text)
+                --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+                --query 'Reservations[*].Instances[*].PublicIpAddress' \
+                --output text)
             echo ${BACKEND_IP}
             echo ${BACKEND_IP} >> ~/project/inventory.txt
             pwd
@@ -264,12 +264,13 @@ jobs:
             sudo python3 -m pip install --upgrade pip 
             sudo python3 -m pip install awscli
       - checkout
-      - attach_workspace:
-          at: ~/
       - run:
           name: Get backend url
           command: |
-            export BACKEND_IP=$(awk '/[web]/{getline; print}' ~/project/inventory.txt)
+            export BACKEND_IP=$(aws ec2 describe-instances \
+                --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+                --query 'Reservations[*].Instances[*].PublicIpAddress' \
+                --output text)
             export API_URL="http://${BACKEND_IP}:3030"
             echo "${API_URL}"
             echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
@@ -349,14 +350,14 @@ jobs:
     docker:
       - image: amazon/aws-cli
     steps:
-      - run: yum -y install tar gzip
-      - attach_workspace:
-          at: ~/
       - run:
           name: Backend smoke test.
           command: |
               # Fetch and prepare the BACKEND_IP env var
-              export BACKEND_IP=$(awk '/[web]/{getline; print}' ~/project/inventory.txt)
+              export BACKEND_IP=$(aws ec2 describe-instances \
+                --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+                --query 'Reservations[*].Instances[*].PublicIpAddress' \
+                --output text)
               export API_URL="http://${BACKEND_IP}:3030/api/status"
               echo "${API_URL}"
               sleep 60
