@@ -1,6 +1,6 @@
 ---
 
-- name: "configuration play." 
+- name: "configuration play - deploy backend." 
   hosts: web
   user: ubuntu
   gather_facts: false
@@ -10,3 +10,4 @@
     - ansible_stdout_callback: yaml
   roles:
     - deploy
+

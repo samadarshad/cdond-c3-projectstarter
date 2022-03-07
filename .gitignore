@@ -68,3 +68,10 @@ node_modules
 
 .env
 dist
+env/
+
+.circleci/ansible/env_vars
+
+startup
+
+udacity.pem
