@@ -3,5 +3,7 @@ https://github.com/samadarshad/cdond-c3-projectstarter
 
 
 URL02
-http://udapeople-be8ebd1.s3-website-us-east-1.amazonaws.com/#/employees
+http://udapeople-dc9058b.s3-website-us-east-1.amazonaws.com/#/employees
 
+Cloudfront:
+https://d21b5cowupg5d0.cloudfront.net
